@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Universal2MD - Nullframe Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Doto:wght@400;700&family=Space+Grotesk:wght@400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #000;
+      --surface: #111;
+      --surface-raised: #1a1a1a;
+      --border: #222;
+      --border-visible: #4d4d4d;
+      --text-display: #fff;
+      --text-primary: #e8e8e8;
+      --text-secondary: #999;
+      --text-disabled: #666;
+      --utility-orange: #f26522;
+      --accent-red: #d71921;
+      --success: #4a9e5c;
+    }
+    
+    body {
+      margin: 0;
+      padding: 20px;
+      background-color: var(--black);
+      color: var(--text-primary);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: auto 1fr;
+      gap: 10px;
+      width: 100%;
+      max-width: 1400px;
+      height: 90vh;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: border-color 0.2s ease-out, background-color 0.2s ease-out;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card:hover {
+      border-color: var(--border-visible);
+      background-color: var(--surface-raised);
+    }
+
+    .card-meta {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-secondary);
+      opacity: 0;
+      transition: opacity 0.25s;
+    }
+
+    .card:hover .card-meta {
+      opacity: 1;
+    }
+
+    .title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-display);
+      margin: 0 0 16px 0;
+      line-height: 1.2;
+    }
+
+    /* Layout specific */
+    .dropzone {
+      grid-column: span 1;
+      border: 1px dashed var(--border-visible);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    
+    .dropzone:hover {
+      border-color: var(--utility-orange);
+      color: var(--utility-orange);
+    }
+
+    .queue {
+      grid-column: span 1;
+      grid-row: span 1;
+      overflow-y: auto;
+    }
+
+    .stats {
+      grid-column: span 3;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      background: transparent;
+      border: none;
+      padding: 0;
+    }
+    .stats .card {
+      padding: 16px 24px;
+    }
+
+    .preview {
+      grid-column: span 3;
+      grid-row: span 1;
+      overflow-y: auto;
+    }
+
+    /* Elements */
+    .metric {
+      font-family: 'Space Mono', monospace;
+      font-size: 36px;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--text-display);
+      margin: 8px 0;
+    }
+
+    .clock {
+      font-family: 'Doto', sans-serif;
+      font-size: 80px;
+      line-height: 1;
+      color: var(--text-display);
+      margin: 0;
+    }
+
+    .led {
+      display: inline-block;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .led.orange {
+      background-color: var(--utility-orange);
+      width: 10px; height: 10px;
+      animation: pulse-orange 2.4s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .led.red {
+      background-color: var(--accent-red);
+      width: 7px; height: 7px;
+      animation: pulse-red 1.6s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .led.green {
+      background-color: var(--success);
+      width: 10px; height: 10px;
+    }
+
+    @keyframes pulse-orange {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; box-shadow: 0 0 8px var(--utility-orange); }
+    }
+    @keyframes pulse-red {
+      0%, 100% { opacity: 0.2; }
+      50% { opacity: 1; box-shadow: 0 0 10px var(--accent-red); }
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .list-item:last-child {
+      border-bottom: none;
+    }
+    .file-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-tag {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      background: #222;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+
+    .shimmer {
+      position: absolute;
+      top: 0; left: -100%;
+      width: 50%; height: 100%;
+      background: linear-gradient(-14deg, transparent, rgba(255,255,255,0.03), transparent);
+      animation: sweep 4s infinite linear;
+      pointer-events: none;
+    }
+    @keyframes sweep {
+      0% { left: -100%; }
+      100% { left: 200%; }
+    }
+
+    .btn {
+      background: #14141699;
+      border: 1px solid #ffffff14;
+      box-shadow: inset 0 1px #ffffff0a;
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      backdrop-filter: blur(20px) saturate(160%);
+      color: var(--text-primary);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease-out;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: auto;
+    }
+    .btn:hover {
+      background: #2a2a2e99;
+      border-color: #ffffff33;
+      transform: translateY(-1px);
+    }
+
+    .markdown-content h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text-display);
+      margin-top: 0;
+    }
+    .markdown-content p {
+      color: var(--text-primary);
+    }
+    .markdown-content pre {
+      background: #000;
+      border: 1px solid var(--border);
+      padding: 16px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bento">
+    <!-- Left Column: Dropzone & Queue -->
+    <div class="card dropzone" style="height: 120px;">
+      <div>
+        <div style="font-size: 24px; margin-bottom: 8px;">+</div>
+        <div>DROP FILES HERE</div>
+      </div>
+    </div>
+
+    <!-- Right Column: Stats -->
+    <div class="stats">
+      <div class="card">
+        <div class="card-meta">Sys.Status</div>
+        <div class="title">Engine</div>
+        <div style="display: flex; align-items: center; margin-top: auto;">
+          <div class="led orange"></div>
+          <span>PROCESSING (2/5)</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-meta">Performance</div>
+        <div class="title">Avg Time</div>
+        <div class="metric">1.2s</div>
+      </div>
+      <div class="card" style="display: flex; justify-content: center; align-items: center; padding: 0;">
+         <div class="clock">U2MD</div>
+      </div>
+    </div>
+
+    <div class="card queue">
+      <div class="card-meta">Queue</div>
+      <h2 class="title">Tasks</h2>
+      
+      <div class="list-item">
+        <div class="led green"></div>
+        <div class="file-name">design_specs.docx</div>
+        <div class="file-tag">DOCX</div>
+      </div>
+      <div class="list-item">
+        <div class="led orange"></div>
+        <div class="file-name">research_paper_v2.pdf</div>
+        <div class="file-tag">PDF</div>
+      </div>
+      <div class="list-item">
+        <div class="led red"></div>
+        <div class="file-name">encrypted_data.hwp</div>
+        <div class="file-tag">HWP</div>
+      </div>
+      <div class="list-item" style="opacity: 0.5;">
+        <div style="width: 10px; margin-right: 8px;"></div>
+        <div class="file-name">novel_draft.epub</div>
+        <div class="file-tag">EPUB</div>
+      </div>
+
+      <button class="btn" style="width: 100%; margin-top: 24px;">CONVERT ALL</button>
+      <div class="shimmer"></div>
+    </div>
+
+    <!-- Right Column: Preview -->
+    <div class="card preview">
+      <div class="card-meta">Output</div>
+      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <h2 class="title">design_specs.md</h2>
+        <div>
+          <button class="btn">COPY</button>
+          <button class="btn">OPEN DIR</button>
+        </div>
+      </div>
+      
+      <div class="markdown-content" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border);">
+        <h1>Universal2MD Converter</h1>
+        <p>This is a <strong>Markdown</strong> preview generated from the original DOCX file. All text stylings are preserved and localized.</p>
+        
+        <pre><code>function parse() {
+  console.log("Extracting assets...");
+}</code></pre>
+        
+        <p>Image assets are extracted to the local <code>assets/</code> directory alongside this file.</p>
+        <div style="width: 100%; height: 120px; background: #000; border: 1px dashed var(--border-visible); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); border-radius: 8px;">
+          [Local Image Reference: assets/img1.png]
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
