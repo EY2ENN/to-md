@@ -84,7 +84,7 @@ function App() {
       
       setJobs(prev => {
         const existingPaths = new Set(prev.map(j => j.sourcePath));
-        const newPaths = paths.map(p => typeof p === 'string' ? p : p.path).filter(p => !existingPaths.has(p));
+        const newPaths = (paths as string[]).filter(p => !existingPaths.has(p));
         
         const newJobs = newPaths.map(pathStr => {
           const fileName = pathStr.split(/[/\\]/).pop() || 'Unknown';
