@@ -44,3 +44,8 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# AI Assistant settings
+.agents/
+skills-lock.json
+
