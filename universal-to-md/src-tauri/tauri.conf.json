@@ -13,8 +13,17 @@
     "windows": [
       {
         "title": "universal-to-md",
-        "width": 800,
-        "height": 600
+        "width": 296,
+        "height": 860,
+        "minWidth": 296,
+        "minHeight": 600,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 16
+        }
       }
     ],
     "security": {
