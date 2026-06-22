@@ -1,5 +1,5 @@
-use std::process::Command;
 use std::path::Path;
+use std::process::Command;
 
 #[tauri::command]
 async fn convert_file(file_path: String) -> Result<String, String> {
@@ -7,20 +7,46 @@ async fn convert_file(file_path: String) -> Result<String, String> {
     if !path.exists() {
         return Err("File does not exist".to_string());
     }
-    
+
     // Output path: same directory, same name but .md
     let parent = path.parent().unwrap_or(Path::new(""));
     let file_stem = path.file_stem().unwrap_or_default().to_string_lossy();
-    
+
     // Create an output folder named after the file
     let output_folder = parent.join(file_stem.as_ref());
     if !output_folder.exists() {
         std::fs::create_dir_all(&output_folder).map_err(|e| e.to_string())?;
     }
-    
+
     let out_md = output_folder.join(format!("{}.md", file_stem));
     let extract_dir = output_folder.to_string_lossy().to_string();
-    
+
+    let file_ext = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+
+    if file_ext == "pdf" {
+        let output = Command::new("pdftotext")
+            .arg("-layout")
+            .arg(&file_path)
+            .arg("-")
+            .output()
+            .map_err(|e| format!("Failed to run pdftotext: {}", e))?;
+
+        if !output.status.success() {
+            let err_msg = String::from_utf8_lossy(&output.stderr);
+            return Err(format!("pdftotext error: {}", err_msg));
+        }
+
+        let text = String::from_utf8_lossy(&output.stdout);
+        let md_content = format!("{}\n", text.trim_end());
+        std::fs::write(&out_md, &md_content)
+            .map_err(|e| format!("Failed to write markdown: {}", e))?;
+        return Ok(md_content);
+    }
+
     // Write the Lua filter to a temporary file
     let filter_content = r#"
 function Div(el) return el.content end
@@ -44,8 +70,9 @@ end
 "#;
     let temp_dir = std::env::temp_dir();
     let filter_path = temp_dir.join("clean_ast.lua");
-    std::fs::write(&filter_path, filter_content).map_err(|e| format!("Failed to write lua filter: {}", e))?;
-    
+    std::fs::write(&filter_path, filter_content)
+        .map_err(|e| format!("Failed to write lua filter: {}", e))?;
+
     // Run pandoc
     // pandoc input.docx -o output_folder/output.md --extract-media=output_folder
     let output = Command::new("pandoc")
@@ -58,16 +85,19 @@ end
         .arg(format!("--lua-filter={}", filter_path.display()))
         .output()
         .map_err(|e| format!("Failed to run pandoc: {}", e))?;
-        
+
     if !output.status.success() {
         let err_msg = String::from_utf8_lossy(&output.stderr);
         return Err(format!("Pandoc error: {}", err_msg));
     }
-    
+
     // Read the output markdown to return for preview
     match std::fs::read_to_string(&out_md) {
         Ok(content) => Ok(content),
-        Err(e) => Err(format!("Converted successfully but failed to read result: {}", e)),
+        Err(e) => Err(format!(
+            "Converted successfully but failed to read result: {}",
+            e
+        )),
     }
 }
 
@@ -80,4 +110,3 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
